@@ -63,9 +63,10 @@ class _NMF(Base):
             verbose=0,
             initial='random',
             alpha=0,
-            l1_ratio=0
+            l1_ratio=0,
+            lower_thresh=1e-8,
             ):
-
+        self.fix_neg.value = lower_thresh
         V = self.fix_neg(V)
 
         if W is None:
