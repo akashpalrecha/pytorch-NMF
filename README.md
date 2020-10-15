@@ -75,9 +75,9 @@ found the cpu inference speed is much slower with version >= 1.0).
 
 ## Installation
 
-Using pip:
+Using pip (not tested, might not work):
 ```
-pip install git+http://github.com/yoyololicon/pytorch-NMFs
+pip install git+http://github.com/akashpalrecha/pytorch-NMFs
 ```
 
 Or clone this repo and do:
