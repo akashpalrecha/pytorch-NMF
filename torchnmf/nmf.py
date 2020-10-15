@@ -54,9 +54,12 @@ class _NMF(Base):
             H=None,
             update_W=True,
             update_H=True,
+            update_H_after_iter=None,
             beta=1,
             tol=1e-5,
+            min_loss=None,
             max_iter=200,
+            min_iter=20,
             verbose=0,
             initial='random',
             alpha=0,
@@ -76,7 +79,9 @@ class _NMF(Base):
         else:
             self.H.data.copy_(H)
             self.H.requires_grad = update_H
-
+        if update_H_after_iter is None:
+            update_H_after_iter = max_iter
+        
         if beta < 1:
             gamma = 1 / (2 - beta)
         elif beta > 2:
@@ -92,6 +97,10 @@ class _NMF(Base):
         H_sum, W_sum = None, None
         with tqdm(total=max_iter, disable=not verbose) as pbar:
             for n_iter in range(max_iter):
+                if n_iter >= update_H_after_iter:
+                    update_H = True
+                    self.H.requires_grad = True
+                    
                 if self.W.requires_grad:
                     self.zero_grad()
                     WH = self.reconstruct(self.H.detach(), self.W)
@@ -122,8 +131,9 @@ class _NMF(Base):
 
                 if not n_iter:
                     loss_init = loss
-                elif (previous_loss - loss) / loss_init < tol:
-                    break
+                elif (previous_loss - loss) / loss_init < tol and n_iter >= min_iter:
+                    if min_loss is not None and loss > min_loss: pass
+                    else: break
                 previous_loss = loss
 
         return n_iter
