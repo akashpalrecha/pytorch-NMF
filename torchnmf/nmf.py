@@ -6,11 +6,11 @@ from .base import Base
 from tqdm import tqdm
 
 
-def _mu_update(param, pos, gamma, l1_reg, l2_reg):
+def _mu_update(param, pos, gamma, l1_reg, l2_reg, constant_rows=None):
     if param.grad is None:
         return
     # prevent negative term, very likely to happen with kl divergence
-    multiplier = F.relu(pos - param.grad, inplace=True)
+    multiplier:torch.Tensor = F.relu(pos - param.grad, inplace=True)
 
     if l1_reg > 0:
         pos.add_(l1_reg)
@@ -22,6 +22,11 @@ def _mu_update(param, pos, gamma, l1_reg, l2_reg):
     multiplier.div_(pos)
     if gamma != 1:
         multiplier.pow_(gamma)
+    
+    # Fill the first `constant_rows` of the multiplier with 1s 
+    # to leave them unchanged
+    if constant_rows is not None:
+        multiplier[:constant_rows,:].fill_(1.0)
     param.mul_(multiplier)
 
 
@@ -52,6 +57,7 @@ class _NMF(Base):
             V,
             W=None,
             H=None,
+            fix_h_rows=None,
             update_W=True,
             update_H=True,
             update_H_after_iter=None,
@@ -121,7 +127,7 @@ class _NMF(Base):
 
                     with torch.no_grad():
                         positive_comps, W_sum = self.get_H_positive(WH, beta, W_sum)
-                        _mu_update(self.H, positive_comps, gamma, l1_reg, l2_reg)
+                        _mu_update(self.H, positive_comps, gamma, l1_reg, l2_reg, fix_h_rows)
                     H_sum = None
 
                 loss = loss.div_(loss_scale).item()
